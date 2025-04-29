@@ -1,13 +1,12 @@
 '''
-This script automates data ingestion into the bronze layer from source folders - crm and erm . 
-Each file is loaded into the dataframe and ingested into the appropriate database table.
-Warning -It assumes that the datasets folder is in the same directory as the script.
+This script automates data ingestion into the bronze layer from source folders - crm and erm.
+Each file is loaded into the dataframe, the script truncates then existing table and ingests the data into the appropriate database table.
+Warning -It is assumed that the datasets folder is in the same directory as the script.
 
 '''
 
-
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine,text
 from dotenv import load_dotenv
 import os
 from  pathlib import Path
@@ -30,7 +29,9 @@ try:
         for file in dir.iterdir():
             df = pd.read_csv(file)
             table = f"bronze_{source}_{file.stem.lower()}"
-            df.to_sql(name=table, con=engine, if_exists="append", index=False)
+            with engine.begin() as conn:
+                conn.execute(text(f"TRUNCATE TABLE {table}"))
+                df.to_sql(name=table, con=engine, if_exists="append", index=False)
             print(f"{file.name} ingested into table '{table}' successfully.")
             
 except Exception as e:
